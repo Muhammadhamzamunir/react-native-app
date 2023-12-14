@@ -136,6 +136,7 @@ const Home = () => {
   const searchCategories = ["Bakery", "Cake Name", "Category"];
 
   return (
+   
     <ScrollView
       style={styles.container}
       refreshControl={
@@ -361,11 +362,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   userProfileImage: {
-    width: 40,
-    height: 40,
+    width: 60,
+    height: 60,
     borderRadius: 50,
     marginRight: 10,
-    borderWidth: 1,
+    borderWidth: 4,
   },
   userInfo: {
     flexDirection: "column",

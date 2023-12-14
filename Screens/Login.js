@@ -17,7 +17,7 @@ import {
 import { Formik } from "formik";
 import * as yup from "yup";
 import Colors from "../assets/Colors";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation, useFocusEffect,useIsFocused } from "@react-navigation/native";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -34,22 +34,32 @@ const LoginScheme = yup.object({
 });
 const ForgetPasswordScheme = yup.object({
   email: yup.string().email("Invalid email").required("Email is required"),
-  
 });
 
 const Login = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [EmailNotFound,setEmailNotFound]= useState();
+  const [EmailNotFound, setEmailNotFound] = useState();
   const navigation = useNavigation();
   const auth = getAuth();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const toggleModal = () => {
-    setEmailNotFound('')
+    setEmailNotFound("");
     setModalVisible(!isModalVisible);
   };
+  const isFocused = useIsFocused();
 
+  const [previousRoute, setPreviousRoute] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('state', (e) => {
+      // Save the previous route whenever the navigation state changes
+      setPreviousRoute(e.data.state.routes[e.data.state.index - 1]);
+    });
+
+    return unsubscribe;
+  }, [navigation]);
   const handleLogin = async (values, { resetForm }) => {
     setLoading(true);
 
@@ -61,7 +71,6 @@ const Login = () => {
       );
 
       const user = userCredential.user;
-      // console.log(user);
       toast.show({
         title: "Success",
         status: "success",
@@ -70,7 +79,12 @@ const Login = () => {
         style: { top: "5%", backgroundColor: "#2ecc71" },
       });
       resetForm();
-      navigation.goBack();
+      
+      if (previousRoute && previousRoute.name === "Signup") {
+        navigation.navigate("Home");
+      } else {
+        navigation.goBack();
+      }
     } catch (error) {
       let errorMessage = "An error occurred. Please try again.";
       toast.show({
@@ -85,9 +99,7 @@ const Login = () => {
     }
   };
 
-  
   useEffect(() => {
-   
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
       (event) => {
@@ -124,13 +136,20 @@ const Login = () => {
             validationSchema={ForgetPasswordScheme}
             onSubmit={handleLogin}
           >
-            {({ handleChange, handleBlur,touched, handleSubmit, values, errors }) => (
+            {({
+              handleChange,
+              handleBlur,
+              touched,
+              handleSubmit,
+              values,
+              errors,
+            }) => (
               <View style={styles.formContainer}>
-               <View style={styles.imageContainer}> 
-                <Image
-                  source={require("../assets/splash.png")}
-                  style={styles.image}
-                />
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={require("../assets/splash.png")}
+                    style={styles.image}
+                  />
                 </View>
                 <Text style={[styles.title]}>Login</Text>
 
@@ -152,7 +171,7 @@ const Login = () => {
                   onBlur={handleBlur("password")}
                   value={values.password}
                 />
-                 {touched.password && errors.password &&(
+                {touched.password && errors.password && (
                   <Text style={styles.errorText}>{errors.password}</Text>
                 )}
                 <TouchableOpacity
@@ -198,100 +217,106 @@ const Login = () => {
             </TouchableOpacity>
           </View>
 
-{/* ------------------------------Modal Start---------------------------------------------------------------- */}
-<Modal
-  isVisible={isModalVisible}
-  onBackdropPress={toggleModal}
-  style={{
-    width: "100%",
-    marginLeft: 0,
-    marginBottom: 0,
-  }}
->
-  <Formik
-    initialValues={{ email: "" }}
-    validationSchema={ForgetPasswordScheme}
-    onSubmit={(modalValues) => {
-      
-      setLoading(true);
-      sendPasswordResetEmail(auth,modalValues.email).then(
-      ()=>{
-        toggleModal();
-        toast.show({
-          title: "Mail sent to your email adress successfully",
-          status: "success",
-          placement: "top",
-          duration: 3000,
-          style: { top: "5%", backgroundColor: "#2ecc71" },
-        })
-        setLoading(false);
-      }
-      ).catch((error)=>{
-        let errorMessage = "An error occurred. Please try again.";
-        switch (error.code) {
-          case "auth/invalid-email":
-            errorMessage = "Invalid email address.";
-            setEmailNotFound('Invalid email address.')
-            break;
-        }
-        toast.show({
-          title: errorMessage,
-          status: "error",
-          placement: "top",
-          duration: 3000,
-          style: { top: "5%", backgroundColor: "#e74c3c" },
-        });
-        setLoading(false);
-      })
-    }}
-  >
-    {({ handleChange, handleBlur, handleSubmit: modalHandleSubmit, values, errors }) => (
-      <View
-        style={[
-          customCSS.modalContainer,
-          { height: 200 + keyboardHeight },
-        ]}
-      >
-        <Text style={customCSS.modalTitle}>Forget Password</Text>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={toggleModal}
-        >
-          <Icon name="times" size={20} color="black" />
-        </TouchableOpacity>
-        <View
-          style={{ justifyContent: "center", alignItems: "center" }}
-        >
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            onChangeText={handleChange("email")}
-            onBlur={handleBlur("email")}
-            value={values.email}
-          />
-          <Text style={styles.errorText}>{errors.email?errors.email:EmailNotFound}</Text>
-          <TouchableOpacity
-            style={styles.regButton}
-            onPress={modalHandleSubmit} 
+          {/* ------------------------------Modal Start---------------------------------------------------------------- */}
+          <Modal
+            isVisible={isModalVisible}
+            onBackdropPress={toggleModal}
+            style={{
+              width: "100%",
+              marginLeft: 0,
+              marginBottom: 0,
+            }}
           >
-            {loading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={Colors.secondaryColor}
+            <Formik
+              initialValues={{ email: "" }}
+              validationSchema={ForgetPasswordScheme}
+              onSubmit={(modalValues) => {
+                setLoading(true);
+                sendPasswordResetEmail(auth, modalValues.email)
+                  .then(() => {
+                    toggleModal();
+                    toast.show({
+                      title: "Mail sent to your email adress successfully",
+                      status: "success",
+                      placement: "top",
+                      duration: 3000,
+                      style: { top: "5%", backgroundColor: "#2ecc71" },
+                    });
+                    setLoading(false);
+                  })
+                  .catch((error) => {
+                    let errorMessage = "An error occurred. Please try again.";
+                    switch (error.code) {
+                      case "auth/invalid-email":
+                        errorMessage = "Invalid email address.";
+                        setEmailNotFound("Invalid email address.");
+                        break;
+                    }
+                    toast.show({
+                      title: errorMessage,
+                      status: "error",
+                      placement: "top",
+                      duration: 3000,
+                      style: { top: "5%", backgroundColor: "#e74c3c" },
+                    });
+                    setLoading(false);
+                  });
+              }}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit: modalHandleSubmit,
+                values,
+                errors,
+              }) => (
+                <View
+                  style={[
+                    customCSS.modalContainer,
+                    { height: 200 + keyboardHeight },
+                  ]}
+                >
+                  <Text style={customCSS.modalTitle}>Forget Password</Text>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={toggleModal}
+                  >
+                    <Icon name="times" size={20} color="black" />
+                  </TouchableOpacity>
+                  <View
+                    style={{ justifyContent: "center", alignItems: "center" }}
+                  >
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email"
+                      onChangeText={handleChange("email")}
+                      onBlur={handleBlur("email")}
+                      value={values.email}
                     />
-                  ) : (
-                    <Text style={styles.regButtonText}>Send Link</Text>
-                  )}
-          </TouchableOpacity>
-        </View>
-      </View>
-    )}
-  </Formik>
-</Modal>
-{/* ----------------------------Modal End--------------------------------------------------------------------------*/}
+                    <Text style={styles.errorText}>
+                      {errors.email ? errors.email : EmailNotFound}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.regButton}
+                      onPress={modalHandleSubmit}
+                    >
+                      {loading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={Colors.secondaryColor}
+                        />
+                      ) : (
+                        <Text style={styles.regButtonText}>Send Link</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </Formik>
+          </Modal>
+          {/* ----------------------------Modal End--------------------------------------------------------------------------*/}
 
-{/* ----------------------------Modal End--------------------------------------------------------------------------*/}
-
+          {/* ----------------------------Modal End--------------------------------------------------------------------------*/}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
