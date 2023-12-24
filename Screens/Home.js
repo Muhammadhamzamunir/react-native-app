@@ -119,7 +119,9 @@ const Home = () => {
     >
       <Image
         style={{ width: 100, height: 80, borderRadius: 20 }}
-        source={require("../assets/category.png")}
+        source={{
+          uri: `https://source.unsplash.com/1024x768/?lava cake`,
+        }}
       ></Image>
       <Text style={styles.categoryButtonText}>{item}</Text>
     </TouchableOpacity>
@@ -362,11 +364,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   userProfileImage: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     borderRadius: 50,
     marginRight: 10,
-    borderWidth: 4,
+    borderWidth: 1,
   },
   userInfo: {
     flexDirection: "column",

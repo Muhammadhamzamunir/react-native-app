@@ -26,7 +26,7 @@ export default function App() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#ff78a9",
+          backgroundColor: "rgba(172, 107, 32, 0.81)",
         }}
       >
         <Text

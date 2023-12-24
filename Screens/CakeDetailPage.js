@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Colors from "../assets/Colors";
@@ -21,14 +22,25 @@ import {
   doc,
 } from "firebase/firestore";
 import app from "../firebase/config";
-import { Center } from "native-base";
-
+import { useAuth } from "../AuthContextApi";
+import Modal from "react-native-modal";
+import { getDatabase, ref, set, serverTimestamp } from "firebase/database";
+import uuid from "react-native-uuid";
+import { useToast, NativeBaseProvider } from "native-base";
 const CakeDetailPage = ({ route, navigation }) => {
+  const { user, updateUserInContext } = useAuth();
   const { item } = route.params;
+  
+  const db = getDatabase(app);
   const bakeryID = route.params.item.bakeryID;
   const [quantity, setQuantity] = useState(1);
   const [bakeryDetail, setBakeryDetails] = useState(null);
-
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+  const toggleModal = () => {
+    setModalVisible(!isModalVisible);
+  };
   useEffect(() => {
     geBakeryData();
   }, []);
@@ -44,11 +56,51 @@ const CakeDetailPage = ({ route, navigation }) => {
   };
 
   const handleAddToCart = () => {
-    // Add logic to add the cake to the cart
-    // You can use a state management solution or dispatch an action here
-    console.log("Cake added to cart:", item);
+   
+    setLoading(true);
+
+    const cartRef = ref(db, `carts/${user.uid}/${uuid.v4()}`);
+
+    set(cartRef, {
+      userId: user.uid,
+      quantity: quantity,
+      productID: item.id,
+      createdAt: serverTimestamp(),
+    })
+      .then(() => {
+        
+        if (isModalVisible) {
+          toggleModal();
+        }
+      })
+      .catch((error) => {
+        console.error('Error adding item to cart:', error);
+      })
+      .finally(() => {
+        setLoading(false);
+        toast.show({
+          title: "Product added successfully",
+          status: "success",
+          placement: "top",
+          duration: 3000,
+          style: { top: "5%", backgroundColor: "#2ecc71" },
+        });
+      });
   };
 
+  const handleCartChecks = () => {
+    // handleAddToCart();
+    if (!user) {
+      navigation.navigate("Login");
+    } 
+    // else if (item.numberOfItems > 9) {
+    //   toggleModal();
+    // } 
+    else {
+      handleAddToCart();
+    }
+
+  };
   return (
     <ScrollView>
       <View style={styles.container}>
@@ -59,6 +111,20 @@ const CakeDetailPage = ({ route, navigation }) => {
           />
         </View>
         <View style={styles.whiteContainer}>
+          {item.numberOfItems < 1 && (
+            <Text
+              style={{
+                color: "white",
+                backgroundColor: "red",
+                borderRadius: 20,
+                padding: 10,
+                marginRight: 20,
+                alignSelf: "center",
+              }}
+            >
+              Out of Stock
+            </Text>
+          )}
           <View style={styles.detailsContainer}>
             <View
               style={{
@@ -85,6 +151,7 @@ const CakeDetailPage = ({ route, navigation }) => {
                   {item.averageRating}
                 </Text>
               </View>
+
               <Text style={styles.cakePrice}>${item.price}</Text>
             </View>
 
@@ -98,16 +165,17 @@ const CakeDetailPage = ({ route, navigation }) => {
               <Text style={styles.cakeName}>{item.productName}</Text>
 
               <View style={styles.quantityContainer}>
-                <TouchableOpacity onPress={() => setQuantity(quantity - 1)}  style={styles.quantityButton}>
-                  <Icon
-                    name="minus"
-                    size={20}
-                    color={Colors.primaryColor}
-                   
-                  />
+                <TouchableOpacity
+                  onPress={() => setQuantity(quantity - 1)}
+                  style={styles.quantityButton}
+                >
+                  <Icon name="minus" size={20} color={Colors.primaryColor} />
                 </TouchableOpacity>
                 <Text style={styles.quantityText}>{quantity}</Text>
-                <TouchableOpacity onPress={() => setQuantity(quantity + 1)}  style={styles.quantityButton}>
+                <TouchableOpacity
+                  onPress={() => setQuantity(quantity + 1)}
+                  style={styles.quantityButton}
+                >
                   <Icon name="plus" size={16} color={Colors.primaryColor} />
                 </TouchableOpacity>
               </View>
@@ -146,13 +214,64 @@ const CakeDetailPage = ({ route, navigation }) => {
           <View style={styles.interactiveContainer}>
             <TouchableOpacity
               style={styles.addToCartButton}
-              onPress={handleAddToCart}
+              onPress={handleCartChecks}
             >
-              <Text style={styles.addToCartText}>Add to Cart</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color={Colors.secondaryColor} />
+              ) : (
+                <Text style={styles.addToCartText}>Add to Cart</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
       </View>
+
+      {/* ------------------------------Modal Start---------------------------------------------------------------- */}
+      <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
+        <View style={styles.modalContainer}>
+          <TouchableOpacity style={styles.closeButton} onPress={toggleModal}>
+            <Icon name="times" size={20} color="black" />
+          </TouchableOpacity>
+          <Text
+            style={{
+              textAlign: "left",
+              padding: 5,
+              fontSize: 20,
+              fontWeight: "bold",
+              marginTop: 5,
+            }}
+          >
+            This Product is Out of Stock!
+          </Text>
+
+          <Text
+            style={{
+              textAlign: "left",
+              padding: 5,
+              fontSize: 16,
+
+              marginTop: 5,
+              marginBottom: 20,
+            }}
+          >
+            Dont Worry 🥳🥳🥳 You can Purchase it. But Might b possible it
+            deilver 2 or 3 days late than normal time ~{"\n"} Are You Sure to
+            Add to Cart
+          </Text>
+
+          <TouchableOpacity
+            style={styles.addToCartButton}
+            onPress={handleAddToCart}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={Colors.secondaryColor} />
+            ) : (
+              <Text style={styles.addToCartText}>Ok, Sure</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </Modal>
+      {/* ----------------------------Modal End--------------------------------------------------------------------------*/}
     </ScrollView>
   );
 };
@@ -165,7 +284,7 @@ const styles = StyleSheet.create({
   cakeImage: {
     width: "70%",
     height: 200,
-    resizeMode: "cover",
+    resizeMode: "contain",
     alignSelf: "center",
 
     marginTop: 30,
@@ -196,7 +315,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-    marginLeft:10
+    marginLeft: 10,
   },
   cakeCalories: {
     fontSize: 16,
@@ -205,7 +324,7 @@ const styles = StyleSheet.create({
   },
   cakeDescription: {
     fontSize: 16,
-    marginLeft:10
+    marginLeft: 10,
   },
   cakePrice: {
     fontSize: 25,
@@ -216,7 +335,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 20,
-   
   },
   quantityContainer: {
     flexDirection: "row",
@@ -226,7 +344,6 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 18,
     marginHorizontal: 10,
-  
   },
   addToCartButton: {
     backgroundColor: Colors.primaryColor,
@@ -245,8 +362,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
     backgroundColor: "#cccc",
-    marginHorizontal:20,
-    borderRadius:10
+    marginHorizontal: 20,
+    borderRadius: 10,
   },
   bakeryImage: {
     width: 100,
@@ -268,6 +385,23 @@ const styles = StyleSheet.create({
   bakeryCountry: {
     fontSize: 16,
     color: "#777",
+  },
+  modalContainer: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    padding: 5,
+  },
+  modalImage: {
+    width: 200,
+    height: 200,
+    alignSelf: "center",
+    marginBottom: 16,
   },
 });
 

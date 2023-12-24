@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 10,
     borderTopLeftRadius: 10,
     backgroundColor: "#f9f9f9",
+    resizeMode: "contain",
   },
   cakeName: {
     fontSize: 18,

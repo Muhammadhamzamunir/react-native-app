@@ -37,6 +37,7 @@ const BakeryCard = () => {
       }));
       
       setAllBakeries(allBakeries);
+      
       setLoading(false);
     } catch (error) {
       console.error("Error fetching bakeries:", error);

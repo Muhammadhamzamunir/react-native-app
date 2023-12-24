@@ -195,9 +195,18 @@ const SearchBarDropdownInline = () => {
   };
 
   const handleResultSelection = (result) => {
+    
     console.log("Selected Result:", result);
-    // Handle the selection logic here, e.g., navigate to a details screen
-    // navigation.navigate("BakeryDetails", { bakeryId: result.id });
+   if(result.productName){
+    navigation.navigate("CakeDetailPage", { item: result });
+   }else{
+     navigation.navigate('BakeryDetail', {bakery:result })
+
+   }
+
+
+   
+
   };
 
   return (
