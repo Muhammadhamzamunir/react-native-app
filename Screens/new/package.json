@@ -1,0 +1,18 @@
+{
+  "name": "new",
+  "version": "1.0.0",
+  "description": "",
+  "main": "importData.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@react-native-firebase/app": "^18.7.3",
+    "@react-native-firebase/database": "^18.7.3",
+    "papaparse": "^5.4.1",
+    "react-native-fs": "^2.20.0"
+  }
+}

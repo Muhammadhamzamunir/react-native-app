@@ -9,7 +9,7 @@ const AuthContext = createContext();
 export const AuthContextApi = ({ children }) => {
   const [user, setUser] = useState(null);
   const auth = getAuth();
-    const updateUserInContext = (updatedUser) => {
+  const updateUserInContext = (updatedUser) => {
     setUser(updatedUser);
   };
   useEffect(() => {
@@ -37,7 +37,7 @@ export const AuthContextApi = ({ children }) => {
         getDoc(authUserDoc).then((docSnapshot) => {
           if (docSnapshot.exists()) {
             const userData = docSnapshot.data();
-            const updatedUserData = { ...userData, uid: userId };
+            const updatedUserData = { ...userData, uid: userId };       
             const userDataString = JSON.stringify(updatedUserData);
 
             setUser(updatedUserData);
@@ -46,7 +46,7 @@ export const AuthContextApi = ({ children }) => {
               console.log("User stored in local storage");
             });
           }
-        });
+        });     
       } else {
         AsyncStorage.removeItem("user").then(() => {
           console.log("User removed from local storage");
